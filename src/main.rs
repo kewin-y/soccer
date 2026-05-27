@@ -8,7 +8,8 @@ fn main() {
 
     for y in 0..image_height {
         let scanlines_remaining = image_height - y;
-        eprintln!("Scanlines remaining: {scanlines_remaining}");
+
+        eprint!("\rScanlines remaining: {scanlines_remaining} ");
 
         for x in 0..image_width {
             // RGB values from 0.0 - 1.0
@@ -24,5 +25,5 @@ fn main() {
         }
     }
 
-    eprintln!("Done!")
+    eprintln!("\rDone.                  ");
 }
