@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub};
 
 #[derive(Clone, Copy, Default)]
 pub struct Vec3 {
@@ -29,6 +29,14 @@ impl Vec3 {
 
     pub fn length_squared(&self) -> f64 {
         self.x() * self.x() + self.y() * self.y() + self.z() * self.z()
+    }
+}
+
+pub type Point3 = Vec3;
+
+impl Display for Vec3 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{} {} {}", self.x(), self.y(), self.z())
     }
 }
 

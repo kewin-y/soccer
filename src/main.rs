@@ -1,6 +1,8 @@
+mod color;
 mod vec3;
 
-use vec3::Vec3;
+use color::{Color, write_color};
+use std::io;
 
 fn main() {
     let image_width = 256;
@@ -21,11 +23,9 @@ fn main() {
             let g = y as f64 / (image_height - 1) as f64;
             let b = 0.0;
 
-            let ir = (255.99 * r) as i32;
-            let ig = (255.99 * g) as i32;
-            let ib = (255.99 * b) as i32;
+            let color = Color::new(r, g, b);
 
-            println!("{ir} {ig} {ib}");
+            write_color(&mut io::stdout(), &color);
         }
     }
 
