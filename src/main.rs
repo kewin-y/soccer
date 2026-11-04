@@ -1,13 +1,85 @@
 mod color;
-mod vec3;
 mod ray;
+mod vec3;
 
 use color::{Color, write_color};
 use std::io;
 
+use vec3::{Point3, Vec3, dot, unit_vector};
+
+use ray::Ray;
+
+fn hit_sphere(center: &Point3, radius: f64, ray: &Ray) -> bool {
+    let orig = ray.orig();
+    let dir = ray.dir();
+    let co = *orig - *center;
+
+    // quadratic equation coefficients
+    let a = dot(*dir, *dir);
+    let b = dot(-2. * *dir, co);
+    let c = dot(co, co) - radius * radius;
+
+    let discriminant = b * b - 4. * a * c;
+
+    // discriminant < 0 --- does not hit sphere
+    // discriminant = 0 --- hits sphere once (ray is tangent to sphere)
+    // discriminant > 0 --- hits sphere twice
+    discriminant >= 0.
+}
+
+fn pixel_color(ray: &Ray) -> Color {
+    // ray direction need not be normalized for these calculations
+    // e.g., in hit_sphere, the ray is extended infinitely (t is allowed to vary in R)
+    let sphere_center = Point3::new(0., 0., -1.);
+    if hit_sphere(&sphere_center, 0.5, ray) {
+        return Color::new(1., 0., 0.);
+    }
+
+    let unit_direction = unit_vector(*ray.dir());
+    // viewport height is 2.0, center is 0.0
+    // so y-coordinate ranges from -1.0 to 1.0
+    let a = 0.5 * (unit_direction.y() + 1.0);
+    let color = (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0);
+    color
+}
+
 fn main() {
-    let image_width = 256;
-    let image_height = 256;
+    let aspect_ratio = 16.0 / 9.0;
+
+    let image_width = 400;
+    let image_height = (image_width as f64 / aspect_ratio) as i32;
+    let image_height = if image_height < 1 { 1 } else { image_height };
+
+    // viewport is a "virtual rectangle"
+    // contains the grid of image pixel locations
+    // calculate dimensions using our real image dimensions
+    // important: we need our viewport aspect to match our image aspect ratio exactly
+    let viewport_height = 2.0; // viewport height is arbritrary
+    let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
+
+    // camera is a 3d point in space where all rays originate
+    // distance from camera to viewport is called "focal length"
+    let camera_center = Point3::new(0., 0., 0.);
+    let focal_length = 1.0;
+
+    // vectors representing the edge of the viewport
+    // u: represents width, points left to right
+    // v: represents height, points top to bottom
+    let vp_u = Vec3::new(viewport_width, 0., 0.);
+    let vp_v = Vec3::new(0., -viewport_height, 0.);
+
+    // keep in mind:
+    // image coordinates range from (0,0) in the top left to
+    // (image_width, image_height) in the bottom right
+    // viewport coordinates are real valued.
+    // the "center" of the viewport is at (0, 0)
+
+    // distance from one pixel to another
+    let pixel_du = vp_u / image_width as f64;
+    let pixel_dv = vp_v / image_height as f64;
+
+    let vp_upper_left = camera_center - Point3::new(0., 0., focal_length) - vp_u / 2. - vp_v / 2.;
+    let pixel00 = vp_upper_left + 0.5 * (pixel_du + pixel_dv);
 
     println!("P3");
     println!("{image_width} {image_height}");
@@ -19,13 +91,11 @@ fn main() {
         eprint!("\rScanlines remaining: {scanlines_remaining} ");
 
         for x in 0..image_width {
-            // RGB values from 0.0 - 1.0
-            let r = x as f64 / (image_width - 1) as f64;
-            let g = y as f64 / (image_height - 1) as f64;
-            let b = 0.0;
+            let pixel = pixel00 + y as f64 * pixel_dv + x as f64 * pixel_du;
+            let dir = pixel - camera_center;
+            let ray = Ray::new(camera_center, dir);
 
-            let color = Color::new(r, g, b);
-
+            let color = pixel_color(&ray);
             write_color(&mut io::stdout(), &color);
         }
     }

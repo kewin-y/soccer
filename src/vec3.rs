@@ -110,7 +110,7 @@ pub fn dot(u: Vec3, v: Vec3) -> f64 {
     u.x() * v.x() + u.y() * v.y() + u.z() * v.z()
 }
 
-pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
+pub fn cross_(u: Vec3, v: Vec3) -> Vec3 {
     Vec3::new(
         u.data[1] * v.data[2] - u.data[2] * v.data[1],
         u.data[2] * v.data[0] - u.data[0] * v.data[2],
@@ -118,7 +118,7 @@ pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
     )
 }
 
-pub fn cross_(u: Vec3, v: Vec3) -> Vec3 {
+pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
     Vec3::new(
         u.y() * v.z() - u.z() * v.y(),
         u.z() * v.x() - u.x() * v.z(),
