@@ -1,38 +1,98 @@
 mod color;
+mod interval;
 mod ray;
 mod vec3;
 
 use color::{Color, write_color};
-use std::io;
-
+use interval::Interval;
+use ray::Ray;
 use vec3::{Point3, Vec3, dot, unit_vector};
 
-use ray::Ray;
+use std::io;
 
-fn hit_sphere(center: &Point3, radius: f64, ray: &Ray) -> bool {
+use crate::interval::{NEGATIVE_HALF_LINE, POSITIVE_HALF_LINE};
+
+struct HitRecord {
+    point: Point3,
+    normal: Vec3,
+
+    // The parameter t of the Ray
+    t: f64,
+}
+impl HitRecord {
+    pub fn new() -> Self {
+        HitRecord {
+            point: Point3::new(0., 0., 0.),
+            normal: Vec3::new(0., 0., 0.),
+            t: 0.,
+        }
+    }
+}
+
+fn hit_sphere(
+    center: &Point3,
+    radius: f64,
+    ray: &Ray,
+    t_interval: &Interval,
+    record: &mut HitRecord,
+) -> bool {
     let orig = ray.orig();
     let dir = ray.dir();
-    let co = *orig - *center;
+    let oc = *orig - *center;
 
     // quadratic equation coefficients
-    let a = dot(*dir, *dir);
-    let b = dot(-2. * *dir, co);
-    let c = dot(co, co) - radius * radius;
+    let a = dir.length_squared();
+    let h = dot(*dir, oc);
+    let c = oc.length_squared() - radius * radius;
 
-    let discriminant = b * b - 4. * a * c;
+    let discriminant = h * h - a * c;
 
-    // discriminant < 0 --- does not hit sphere
-    // discriminant = 0 --- hits sphere once (ray is tangent to sphere)
-    // discriminant > 0 --- hits sphere twice
-    discriminant >= 0.
+    if discriminant < 0. {
+        return false;
+    }
+
+    let sqrtd = discriminant.sqrt();
+
+    let mut root = (h - sqrtd) / a;
+
+
+    if !t_interval.contains(root) {
+        root = (h + sqrtd) / a;
+        if !t_interval.contains(root) {
+            return false;
+        }
+    }
+
+    let t = root;
+    let p = ray.at(t);
+    let normal = unit_vector(p - *center);
+
+    record.t = t;
+    record.point = p;
+    record.normal = normal;
+
+    eprintln!("Hit! {}", root);
+    return true;
 }
 
 fn pixel_color(ray: &Ray) -> Color {
     // ray direction need not be normalized for these calculations
     // e.g., in hit_sphere, the ray is extended infinitely (t is allowed to vary in R)
     let sphere_center = Point3::new(0., 0., -1.);
-    if hit_sphere(&sphere_center, 0.5, ray) {
-        return Color::new(1., 0., 0.);
+    let mut hit_record = HitRecord::new();
+
+    if hit_sphere(
+        &sphere_center,
+        0.5,
+        ray,
+        &NEGATIVE_HALF_LINE,
+        &mut hit_record,
+    ) {
+        let r = hit_record.normal.x() + 1.;
+        let g = hit_record.normal.y() + 1.;
+        let b = hit_record.normal.z() + 1.;
+
+        return 0.5 * Color::new(r, g, b);
     }
 
     let unit_direction = unit_vector(*ray.dir());
